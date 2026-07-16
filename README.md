@@ -15,14 +15,19 @@ npm run preview  # serve the production build locally
 
 ## Deploying
 
-The build is a static site — deploy `dist/` anywhere:
+Live at **https://krinehart109.github.io/workout-531/** (GitHub Pages, `gh-pages` branch).
+The base path `/workout-531/` is set in [vite.config.ts](vite.config.ts) — keep it in
+sync with the repo name.
 
-- **Netlify / Vercel**: point at the repo, build command `npm run build`, output `dist`.
-- **GitHub Pages**: if serving from `https://<user>.github.io/<repo>/`, set
-  `base: '/<repo>/'` in [vite.config.ts](vite.config.ts) before building.
+To ship an update:
 
-Install on the phone: open the deployed URL in Safari/Chrome → Share → **Add to Home
-Screen**. After the first load it works fully offline.
+```sh
+npm run deploy   # builds and pushes dist/ to the gh-pages branch
+```
+
+Install on the phone: open the URL in Safari/Chrome → Share → **Add to Home Screen**.
+After the first load it works fully offline; installed phones pick up new deploys the
+next time they open the app with a connection.
 
 ## Where things live
 
