@@ -760,6 +760,18 @@ input[type='checkbox'] {
   color: var(--accent-ink);
 }
 
+.chip-sm {
+  min-height: 40px;
+  padding: 7px 13px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.load-hist-val {
+  margin-left: auto;
+  font-size: 19px;
+}
+
 .chart {
   width: 100%;
   height: auto;

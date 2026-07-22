@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type WorkoutLog } from '../db';
 import { epley1RM, minRepsForWeek, trainingMaxForCycle, type LiftKey } from '../lib/program';
 import { buildWorkoutPlan } from '../lib/plan';
+import { assistanceFor, type AssistSlot } from '../lib/assistance';
 import { allPositions, dateForPosition, formatDate, liftForDay, positionId, todayISO } from '../lib/schedule';
 import type { AppSettings } from '../lib/seed';
 import LineChart, { type ChartPoint } from '../components/LineChart';
 
 const LIFT_KEYS: LiftKey[] = ['press', 'deadlift', 'bench', 'squat'];
+const ASSIST_SLOTS: AssistSlot[] = ['a1', 'a2', 'optional'];
 
 interface AmrapEntry {
   cycle: number;
@@ -44,6 +46,96 @@ function amrapHistory(lift: LiftKey, settings: AppSettings, logs: WorkoutLog[]):
     });
   }
   return out;
+}
+
+interface LoadPoint {
+  dateMs: number;
+  weight: number;
+  cycle: number;
+  week: number;
+}
+
+/** Logged accessory loads grouped by movement name (movements rotate per cycle). */
+function accessoryHistory(settings: AppSettings, logs: WorkoutLog[]): Map<string, LoadPoint[]> {
+  const map = new Map<string, LoadPoint[]>();
+  for (const log of logs) {
+    if (!log.weights) continue;
+    for (const slot of ASSIST_SLOTS) {
+      const weight = log.weights[slot];
+      if (!weight) continue;
+      let name: string;
+      try {
+        name = assistanceFor(log.day, log.cycle, slot).name;
+      } catch {
+        continue;
+      }
+      const date = log.date ?? dateForPosition({ cycle: log.cycle, week: log.week, day: log.day }, settings.cycleStarts);
+      const point: LoadPoint = { dateMs: Date.parse(`${date}T00:00:00Z`), weight, cycle: log.cycle, week: log.week };
+      const arr = map.get(name);
+      if (arr) arr.push(point);
+      else map.set(name, [point]);
+    }
+  }
+  for (const arr of map.values()) arr.sort((a, b) => a.dateMs - b.dateMs);
+  return map;
+}
+
+function AccessoryLoads({
+  settings,
+  logs,
+  fmtDate,
+}: {
+  settings: AppSettings;
+  logs: WorkoutLog[];
+  fmtDate: (ms: number) => string;
+}) {
+  const history = useMemo(() => accessoryHistory(settings, logs), [settings, logs]);
+  const names = useMemo(() => [...history.keys()].sort(), [history]);
+  const [selected, setSelected] = useState<string | null>(null);
+
+  if (names.length === 0) {
+    return (
+      <section className="card">
+        <div className="block-head">
+          <h2>Accessory Loads</h2>
+        </div>
+        <p className="muted">Log a weight on any dumbbell or barbell accessory and it charts here.</p>
+      </section>
+    );
+  }
+
+  const active = selected && history.has(selected) ? selected : names[0];
+  const entries = history.get(active) ?? [];
+  const points: ChartPoint[] = entries.map((e) => ({ x: e.dateMs, y: e.weight }));
+
+  return (
+    <section className="card">
+      <div className="block-head">
+        <h2>Accessory Loads</h2>
+        <span className="muted">actual weight logged</span>
+      </div>
+      <div className="chip-row">
+        {names.map((n) => (
+          <button
+            key={n}
+            className={`chip chip-sm ${active === n ? 'chip-active' : ''}`}
+            onClick={() => setSelected(n)}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <LineChart points={points} formatX={fmtDate} formatY={(v) => v.toFixed(0)} />
+      {[...entries].reverse().map((e, i) => (
+        <div key={i} className="bw-row">
+          <span className="muted">
+            C{e.cycle} · W{e.week}
+          </span>
+          <span className="num load-hist-val">{e.weight} lb</span>
+        </div>
+      ))}
+    </section>
+  );
 }
 
 export default function Progress({ settings }: { settings: AppSettings }) {
@@ -129,6 +221,8 @@ export default function Progress({ settings }: { settings: AppSettings }) {
           </div>
         ))}
       </section>
+
+      <AccessoryLoads settings={settings} logs={logs} fmtDate={fmtDate} />
 
       <section className="card">
         <div className="block-head">
