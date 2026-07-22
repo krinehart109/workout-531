@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, updateSetLog } from '../db';
+import { db, setBlockWeight, updateSetLog } from '../db';
 import { buildWorkoutPlan, requiredSetIds, type PlannedSet, type WorkoutBlock } from '../lib/plan';
 import { epley1RM, WEEK_NAMES } from '../lib/program';
 import { formatDate, positionId, type ProgramPosition } from '../lib/schedule';
@@ -21,6 +21,46 @@ interface Props {
 interface TimerState {
   total: number;
   startedAt: number;
+}
+
+/** Editable per-movement load for accessory work: ±5 steppers plus direct entry. */
+function LoadControl({ value, onChange }: { value?: number; onChange: (v: number | undefined) => void }) {
+  const [text, setText] = useState<string | null>(null);
+  const shown = text ?? (value !== undefined ? String(value) : '');
+  const commit = (raw: string) => {
+    const v = parseFloat(raw);
+    onChange(Number.isFinite(v) && v > 0 ? v : undefined);
+  };
+  const bump = (delta: number) => {
+    const next = Math.max(0, (value ?? 0) + delta);
+    onChange(next > 0 ? next : undefined);
+    setText(null);
+  };
+  return (
+    <div className="load-row">
+      <span className="load-label muted">Load</span>
+      <button className="wstep num" onClick={() => bump(-5)} aria-label="Decrease load 5 lb">
+        −
+      </button>
+      <input
+        className="wval num"
+        type="number"
+        inputMode="decimal"
+        placeholder="—"
+        value={shown}
+        onChange={(e) => {
+          setText(e.target.value);
+          commit(e.target.value);
+        }}
+        onBlur={() => setText(null)}
+        aria-label="Logged load in pounds"
+      />
+      <span className="load-unit muted">lb</span>
+      <button className="wstep num" onClick={() => bump(5)} aria-label="Increase load 5 lb">
+        +
+      </button>
+    </div>
+  );
 }
 
 export default function WorkoutView({ pos, date, settings, badge, onBack }: Props) {
@@ -106,6 +146,12 @@ export default function WorkoutView({ pos, date, settings, badge, onBack }: Prop
             <h2>{block.title}</h2>
             {block.subtitle && <span className="muted">{block.subtitle}</span>}
           </div>
+          {block.logWeight && (
+            <LoadControl
+              value={log?.weights?.[block.kind]}
+              onChange={(w) => void setBlockWeight(pos, logId, block.kind, w)}
+            />
+          )}
           {block.sets.map((set, i) => {
             const state = sets[set.id];
             const done = state?.completed ?? false;

@@ -14,8 +14,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png', 'icon.svg'],
       manifest: {
-        name: '5/3/1 Boring But Big',
-        short_name: '5/3/1',
+        name: 'Forge — 5/3/1 BBB',
+        short_name: 'Forge',
         description: 'Personal 5/3/1 BBB strength tracker',
         display: 'standalone',
         orientation: 'portrait',

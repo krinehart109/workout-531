@@ -108,6 +108,14 @@ export function assistSetCount(slot: AssistSlot, week: number): number {
   return n;
 }
 
+// Accessory movements done with no external load — weight logging is hidden for these.
+const BODYWEIGHT_PATTERN = /ab wheel|stir-the-pot|push-ups|glute bridge|leg curl|side plank/i;
+
+/** True if an accessory movement is loaded (DB/BB/goblet/etc.) and worth logging a weight for. */
+export function isWeightedMovement(name: string): boolean {
+  return !BODYWEIGHT_PATTERN.test(name);
+}
+
 /** Hip-prep warm-up checklist shown on squat and deadlift days. */
 export const HIP_PREP: AssistMovement[] = [
   { name: 'Glute Bridges', reps: '12' },

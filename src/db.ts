@@ -17,6 +17,8 @@ export interface WorkoutLog {
   /** Date the workout was actually performed */
   date?: string;
   sets: Record<string, SetLog>;
+  /** Actual load logged per accessory block (keyed by block kind: a1/a2/optional), in lb */
+  weights?: Record<string, number>;
   /** Set when all main working sets are complete */
   completedAt?: string;
 }
@@ -71,6 +73,35 @@ export async function updateSetLog(
     const allMainDone = requiredSetIds.every((id) => log.sets[id]?.completed);
     log.date = anyDone ? (log.date ?? workoutDate) : undefined;
     log.completedAt = allMainDone ? (log.completedAt ?? new Date().toISOString()) : undefined;
+    await db.workoutLogs.put(log);
+  });
+}
+
+/**
+ * Set (or clear, when weight is falsy/≤0) the logged load for an accessory block,
+ * creating the log if needed without touching completion state.
+ */
+export async function setBlockWeight(
+  pos: ProgramPosition,
+  logId: string,
+  blockKind: string,
+  weight: number | undefined,
+): Promise<void> {
+  await db.transaction('rw', db.workoutLogs, async () => {
+    const log: WorkoutLog = (await db.workoutLogs.get(logId)) ?? {
+      id: logId,
+      cycle: pos.cycle,
+      week: pos.week,
+      day: pos.day,
+      sets: {},
+    };
+    const weights = { ...(log.weights ?? {}) };
+    if (weight && Number.isFinite(weight) && weight > 0) {
+      weights[blockKind] = weight;
+    } else {
+      delete weights[blockKind];
+    }
+    log.weights = weights;
     await db.workoutLogs.put(log);
   });
 }

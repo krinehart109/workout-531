@@ -79,7 +79,7 @@ input[type='checkbox'] {
 .app {
   max-width: 480px;
   margin: 0 auto;
-  padding: 14px 14px calc(88px + env(safe-area-inset-bottom));
+  padding: calc(14px + env(safe-area-inset-top)) 14px calc(88px + env(safe-area-inset-bottom));
 }
 
 .splash {
@@ -329,6 +329,58 @@ input[type='checkbox'] {
   .setrow.done .check {
     animation: none;
   }
+}
+
+/* ---- accessory load control ---- */
+
+.load-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 10px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+
+.load-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: auto;
+}
+
+.wstep {
+  width: 46px;
+  height: 44px;
+  flex: none;
+  border-radius: 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 24px;
+}
+
+.wstep:active {
+  background: var(--line);
+}
+
+.wval {
+  width: 74px;
+  min-height: 44px;
+  text-align: center;
+  font-size: 24px;
+  padding: 6px 4px;
+}
+
+.wval::-webkit-outer-spin-button,
+.wval::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.load-unit {
+  font-size: 15px;
+  margin-left: -4px;
 }
 
 /* ---- AMRAP stepper ---- */

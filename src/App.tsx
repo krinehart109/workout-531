@@ -31,7 +31,7 @@ export default function App() {
   if (!settings) {
     return (
       <div className="splash">
-        <span className="num">5/3/1</span>
+        <span className="num">FORGE</span>
       </div>
     );
   }

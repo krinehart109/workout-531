@@ -1,4 +1,4 @@
-# 5/3/1 BBB Tracker
+# Forge
 
 Personal, local-first PWA for a 12-week 5/3/1 Boring But Big run (3 cycles × 4 weeks).
 Dark-themed, offline-capable, one-thumb operable. No accounts, no backend — everything

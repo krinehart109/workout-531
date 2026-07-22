@@ -81,6 +81,23 @@ describe('buildWorkoutPlan', () => {
     expect(w4.blocks.find((b) => b.kind === 'optional')).toBeUndefined();
   });
 
+  it('flags loaded accessory movements for weight logging, not bodyweight ones', () => {
+    // Press day C1: A1 = 1-Arm DB Row (loaded), A2 = Ab Wheel (bodyweight)
+    const press = buildWorkoutPlan({ cycle: 1, week: 1, day: 1 }, settings);
+    expect(block(press, 'a1').logWeight).toBe(true);
+    expect(block(press, 'a2').logWeight).toBe(false);
+    expect(block(press, 'optional').logWeight).toBe(true); // Lateral Raises
+    // Deadlift day C1: A1 = DB Bench (loaded), A2 = Swiss Ball Leg Curl (bodyweight)
+    const dl = buildWorkoutPlan({ cycle: 1, week: 1, day: 2 }, settings);
+    expect(block(dl, 'a1').logWeight).toBe(true);
+    expect(block(dl, 'a2').logWeight).toBe(false);
+    // Squat day C1: A2 = Ab Wheel (bodyweight), C2 A2 = Side Plank (bodyweight)
+    expect(block(buildWorkoutPlan({ cycle: 2, week: 1, day: 4 }, settings), 'a2').logWeight).toBe(false);
+    // BBB and main blocks never carry the accessory load control
+    expect(block(press, 'bbb').logWeight).toBeFalsy();
+    expect(block(press, 'main').logWeight).toBeFalsy();
+  });
+
   it('assistance rotates by cycle (press day A1)', () => {
     expect(block(buildWorkoutPlan({ cycle: 1, week: 1, day: 1 }, settings), 'a1').title).toContain('1-Arm DB Row');
     expect(block(buildWorkoutPlan({ cycle: 2, week: 1, day: 1 }, settings), 'a1').title).toContain('Underhand BB Row');

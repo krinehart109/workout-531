@@ -13,7 +13,7 @@ import {
   type LiftConfig,
   type LiftKey,
 } from './program';
-import { assistanceFor, assistSetCount, HIP_PREP, type AssistSlot } from './assistance';
+import { assistanceFor, assistSetCount, HIP_PREP, isWeightedMovement, type AssistSlot } from './assistance';
 import { liftForDay, type ProgramPosition } from './schedule';
 import type { AppSettings } from './seed';
 
@@ -42,6 +42,8 @@ export interface WorkoutBlock {
   /** Which rest timer to auto-start after a set; null = no timer */
   rest: RestKind | null;
   sets: PlannedSet[];
+  /** Accessory movement that takes external load — show a weight-logging control */
+  logWeight?: boolean;
 }
 
 export interface WorkoutPlan {
@@ -148,6 +150,7 @@ export function buildWorkoutPlan(pos: ProgramPosition, settings: AppSettings): W
       subtitle: slot === 'optional' ? 'Finisher — skip if short on time' : 'Superset · 60–90 s rest',
       rest: 'assistance',
       sets: Array.from({ length: count }, (_, i) => ({ id: `${slot}s${i + 1}`, reps: move.reps })),
+      logWeight: isWeightedMovement(move.name),
     });
   }
 
