@@ -116,24 +116,31 @@ export function nextFixedWorkout(
   return null;
 }
 
-// ---- Rolling 3-day mode: workouts proceed in order on Mon/Wed/Fri ----
+// ---- Flexible mode: the date determines cycle + week; the lifter picks
+// which of the week's 4 lifts (and 3 cardio sessions) to do each day ----
 
-const ROLLING_WEEKDAYS = new Set([1, 3, 5]);
-
-/** The first `count` Mon/Wed/Fri dates on or after `startIso`. */
-export function rollingSlotDates(startIso: string, count: number): string[] {
-  const out: string[] = [];
-  let d = startIso;
-  while (out.length < count) {
-    if (ROLLING_WEEKDAYS.has(weekdayOf(d))) out.push(d);
-    d = addDays(d, 1);
-  }
-  return out;
+export interface WeekPosition {
+  cycle: number;
+  week: number;
 }
 
-/** Next Mon/Wed/Fri on or after a date. */
-export function nextRollingSlot(fromIso: string): string {
-  let d = fromIso;
-  while (!ROLLING_WEEKDAYS.has(weekdayOf(d))) d = addDays(d, 1);
-  return d;
+/**
+ * Cycle + week containing a date, ignoring the weekday entirely
+ * (weekends included). Null outside the program.
+ */
+export function weekForDate(iso: string, cycleStarts: string[]): WeekPosition | null {
+  for (let c = 0; c < cycleStarts.length; c++) {
+    const start = cycleStarts[c];
+    if (start === undefined) continue;
+    const d = daysBetween(start, iso);
+    if (d >= 0 && d < WEEKS_PER_CYCLE * 7) {
+      return { cycle: c + 1, week: Math.floor(d / 7) + 1 };
+    }
+  }
+  return null;
+}
+
+/** Log id for a cardio session slot within a week. */
+export function cardioId(cycle: number, week: number, slot: number): string {
+  return `c${cycle}w${week}k${slot}`;
 }

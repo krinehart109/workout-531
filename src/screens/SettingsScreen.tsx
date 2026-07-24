@@ -92,17 +92,24 @@ function ScheduleEditor({ settings }: { settings: AppSettings }) {
       <div className="block-head">
         <h2>Schedule</h2>
       </div>
-      <label className="toggle-row">
-        <span>
-          Rolling 3-day mode
-          <span className="muted field-hint">Workouts proceed in order on Mon/Wed/Fri — nothing is skipped</span>
-        </span>
-        <input
-          type="checkbox"
-          checked={settings.rollingMode}
-          onChange={(e) => void patchSettings({ rollingMode: e.target.checked })}
-        />
+      <label className="field field-wide">
+        <span className="field-label">Mode</span>
+        <select
+          className="ex-select"
+          value={settings.scheduleMode ?? 'flex'}
+          onChange={(e) => void patchSettings({ scheduleMode: e.target.value as 'flex' | 'fixed' })}
+        >
+          <option value="flex">Flexible — 4 lifts + cardio, any days</option>
+          <option value="fixed">Fixed — Mon Press · Tue DL · Thu Bench · Fri Squat</option>
+        </select>
       </label>
+      {(settings.scheduleMode ?? 'flex') === 'flex' && (
+        <NumberField
+          label="Cardio sessions / week"
+          value={settings.cardioPerWeek ?? 3}
+          onCommit={(v) => void patchSettings({ cardioPerWeek: Math.max(0, Math.min(7, Math.round(v))) })}
+        />
+      )}
       {settings.cycleStarts.map((d, i) => (
         <label key={i} className="field field-wide">
           <span className="field-label">Cycle {i + 1} start</span>

@@ -4,7 +4,11 @@
       "Bash(node scripts/gen-icons.mjs)",
       "Bash(npx tsc *)",
       "Bash(npm run *)",
-      "Bash(npm test *)"
+      "Bash(npm test *)",
+      "Bash(npx vitest *)",
+      "Bash(git add *)",
+      "Bash(git -c 'user.name=Kyle Rinehart' -c user.email=krinehart109@gmail.com commit -q -m 'Add exercise swapping and flexible weekly schedule *)",
+      "Bash(git push *)"
     ]
   }
 }

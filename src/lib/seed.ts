@@ -10,12 +10,22 @@ export interface RestSettings {
   assistance: number;
 }
 
+export type ScheduleMode = 'flex' | 'fixed';
+
 export interface AppSettings {
   id: number;
   lifts: Record<LiftKey, LiftConfig>;
   barWeight: number;
   plates: PlatePair[];
-  rollingMode: boolean;
+  /**
+   * 'flex' (default): the date sets the week; pick any of the week's 4 lifts
+   * + cardio sessions on any days. 'fixed': Mon=Press Tue=DL Thu=Bench Fri=Squat.
+   * Optional because settings stored by older versions lack it — read via
+   * `settings.scheduleMode ?? 'flex'`.
+   */
+  scheduleMode?: ScheduleMode;
+  /** Cardio sessions per week in flex mode (optional in older stored settings) */
+  cardioPerWeek?: number;
   /** Monday start date of each cycle, YYYY-MM-DD */
   cycleStarts: string[];
   /** Per lift: cycles AFTER which the TM increment is held (skipped) */
@@ -73,7 +83,8 @@ export function defaultSettings(): AppSettings {
       { size: 5, pairs: 1 },
       { size: 2.5, pairs: 1 },
     ],
-    rollingMode: false,
+    scheduleMode: 'flex',
+    cardioPerWeek: 3,
     cycleStarts: ['2026-07-20', '2026-08-17', '2026-09-14'],
     holds: {},
     rest: { main: 180, bbb: 90, assistance: 75 },

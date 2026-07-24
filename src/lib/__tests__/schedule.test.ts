@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   allPositions,
+  cardioId,
   dateForPosition,
   daysBetween,
   liftForDay,
   nextFixedWorkout,
-  nextRollingSlot,
   positionForDate,
   positionId,
-  rollingSlotDates,
   weekdayOf,
+  weekForDate,
 } from '../schedule';
 
 const STARTS = ['2026-07-20', '2026-08-17', '2026-09-14'];
@@ -85,15 +85,23 @@ describe('program enumeration', () => {
   });
 });
 
-describe('rolling 3-day mode', () => {
-  it('slots land on Mon/Wed/Fri in order', () => {
-    const slots = rollingSlotDates('2026-07-20', 5);
-    expect(slots).toEqual(['2026-07-20', '2026-07-22', '2026-07-24', '2026-07-27', '2026-07-29']);
+describe('flexible mode (weekForDate)', () => {
+  it('maps any weekday — including rest days and weekends — to its week', () => {
+    expect(weekForDate('2026-07-20', STARTS)).toEqual({ cycle: 1, week: 1 }); // Mon
+    expect(weekForDate('2026-07-22', STARTS)).toEqual({ cycle: 1, week: 1 }); // Wed
+    expect(weekForDate('2026-07-26', STARTS)).toEqual({ cycle: 1, week: 1 }); // Sun
+    expect(weekForDate('2026-07-27', STARTS)).toEqual({ cycle: 1, week: 2 });
   });
 
-  it('next slot from a non-training day', () => {
-    expect(nextRollingSlot('2026-07-25')).toBe('2026-07-27'); // Sat → Mon
-    expect(nextRollingSlot('2026-07-21')).toBe('2026-07-22'); // Tue → Wed
-    expect(nextRollingSlot('2026-07-20')).toBe('2026-07-20'); // Mon stays
+  it('advances cycles and caps at the end', () => {
+    expect(weekForDate('2026-08-16', STARTS)).toEqual({ cycle: 1, week: 4 }); // last Sunday of C1
+    expect(weekForDate('2026-08-17', STARTS)).toEqual({ cycle: 2, week: 1 });
+    expect(weekForDate('2026-10-11', STARTS)).toEqual({ cycle: 3, week: 4 }); // day 27 of C3
+    expect(weekForDate('2026-10-12', STARTS)).toBeNull(); // program over
+    expect(weekForDate('2026-07-19', STARTS)).toBeNull(); // before start
+  });
+
+  it('cardio ids are per cycle/week/slot', () => {
+    expect(cardioId(1, 2, 3)).toBe('c1w2k3');
   });
 });

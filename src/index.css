@@ -331,6 +331,111 @@ input[type='checkbox'] {
   }
 }
 
+/* ---- exercise swap select ---- */
+
+.ex-select {
+  width: 100%;
+  min-height: 46px;
+  background-color: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 38px 8px 12px;
+  margin: 2px 0 8px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24'%3E%3Cpath d='M5 9l7 7 7-7' fill='none' stroke='%238b93a1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.ex-select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* ---- flexible week menu ---- */
+
+.week-menu {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.wm-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 62px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 6px 2px;
+}
+
+.wm-lift {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wm-weight {
+  font-size: 24px;
+}
+
+.wm-active {
+  border-color: var(--accent);
+  background: var(--accent-dim, rgba(255, 197, 61, 0.1));
+}
+
+.wm-active .wm-lift {
+  color: var(--accent);
+}
+
+.wm-done .wm-weight {
+  color: var(--green);
+}
+
+.cardio-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.cardio-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: auto;
+}
+
+.cardio-pill {
+  min-width: 58px;
+  min-height: 44px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.cardio-done {
+  background: var(--green);
+  border-color: var(--green);
+  color: #06280f;
+}
+
 /* ---- accessory load control ---- */
 
 .load-row {

@@ -4,6 +4,7 @@ import { db, type WorkoutLog } from '../db';
 import { epley1RM, minRepsForWeek, trainingMaxForCycle, type LiftKey } from '../lib/program';
 import { buildWorkoutPlan } from '../lib/plan';
 import { assistanceFor, type AssistSlot } from '../lib/assistance';
+import { exerciseById } from '../lib/exercises';
 import { allPositions, dateForPosition, formatDate, liftForDay, positionId, todayISO } from '../lib/schedule';
 import type { AppSettings } from '../lib/seed';
 import LineChart, { type ChartPoint } from '../components/LineChart';
@@ -63,11 +64,19 @@ function accessoryHistory(settings: AppSettings, logs: WorkoutLog[]): Map<string
     for (const slot of ASSIST_SLOTS) {
       const weight = log.weights[slot];
       if (!weight) continue;
+      // A swapped exercise charts under its own name, not the programmed one
+      const overrideId = log.overrides?.[slot];
       let name: string;
-      try {
-        name = assistanceFor(log.day, log.cycle, slot).name;
-      } catch {
-        continue;
+      if (overrideId) {
+        const ex = exerciseById(overrideId);
+        if (!ex) continue;
+        name = ex.name;
+      } else {
+        try {
+          name = assistanceFor(log.day, log.cycle, slot).name;
+        } catch {
+          continue;
+        }
       }
       const date = log.date ?? dateForPosition({ cycle: log.cycle, week: log.week, day: log.day }, settings.cycleStarts);
       const point: LoadPoint = { dateMs: Date.parse(`${date}T00:00:00Z`), weight, cycle: log.cycle, week: log.week };

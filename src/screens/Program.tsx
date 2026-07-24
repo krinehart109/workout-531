@@ -3,14 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { buildWorkoutPlan } from '../lib/plan';
 import { WEEK_NAMES } from '../lib/program';
-import {
-  allPositions,
-  dateForPosition,
-  formatDate,
-  positionId,
-  rollingSlotDates,
-  type ProgramPosition,
-} from '../lib/schedule';
+import { dateForPosition, formatDate, positionId, type ProgramPosition } from '../lib/schedule';
 import type { AppSettings } from '../lib/seed';
 import WorkoutView from '../components/WorkoutView';
 
@@ -22,16 +15,8 @@ export default function Program({ settings }: { settings: AppSettings }) {
   if (!logs) return null;
   const byId = new Map(logs.map((l) => [l.id, l]));
 
-  const all = allPositions();
-  const slots = settings.rollingMode ? rollingSlotDates(settings.cycleStarts[0] ?? '2026-07-20', all.length) : null;
-
-  const dateFor = (pos: ProgramPosition): string => {
-    if (slots) {
-      const idx = all.findIndex((p) => positionId(p) === positionId(pos));
-      return slots[idx] ?? dateForPosition(pos, settings.cycleStarts);
-    }
-    return dateForPosition(pos, settings.cycleStarts);
-  };
+  // Nominal date for un-trained days; actual training date wins once logged.
+  const dateFor = (pos: ProgramPosition): string => dateForPosition(pos, settings.cycleStarts);
 
   if (selected) {
     return (

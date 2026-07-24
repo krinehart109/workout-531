@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, setBlockWeight, updateSetLog } from '../db';
+import { db, setBlockOverride, setBlockWeight, updateSetLog } from '../db';
 import { buildWorkoutPlan, requiredSetIds, type PlannedSet, type WorkoutBlock } from '../lib/plan';
+import { BBB_OPTIONS, EXERCISE_GROUPS, EXERCISE_LIBRARY } from '../lib/exercises';
 import { epley1RM, WEEK_NAMES } from '../lib/program';
 import { formatDate, positionId, type ProgramPosition } from '../lib/schedule';
 import type { AppSettings } from '../lib/seed';
@@ -66,7 +67,7 @@ function LoadControl({ value, onChange }: { value?: number; onChange: (v: number
 export default function WorkoutView({ pos, date, settings, badge, onBack }: Props) {
   const logId = positionId(pos);
   const log = useLiveQuery(() => db.workoutLogs.get(logId), [logId]);
-  const plan = useMemo(() => buildWorkoutPlan(pos, settings), [pos, settings]);
+  const plan = useMemo(() => buildWorkoutPlan(pos, settings, log?.overrides ?? {}), [pos, settings, log]);
   const [timer, setTimer] = useState<TimerState | null>(null);
   const [plateWeight, setPlateWeight] = useState<number | null>(null);
 
@@ -146,6 +147,38 @@ export default function WorkoutView({ pos, date, settings, badge, onBack }: Prop
             <h2>{block.title}</h2>
             {block.subtitle && <span className="muted">{block.subtitle}</span>}
           </div>
+          {block.swap && (
+            <select
+              className="ex-select"
+              value={block.swap.selectedId ?? 'default'}
+              onChange={(e) =>
+                void setBlockOverride(
+                  pos,
+                  logId,
+                  block.kind,
+                  e.target.value === 'default' ? undefined : e.target.value,
+                )
+              }
+              aria-label={`Exercise for ${block.title}`}
+            >
+              <option value="default">{block.swap.defaultName} · programmed</option>
+              {block.kind === 'bbb'
+                ? BBB_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))
+                : EXERCISE_GROUPS.map((g) => (
+                    <optgroup key={g} label={g}>
+                      {EXERCISE_LIBRARY.filter((x) => x.group === g).map((x) => (
+                        <option key={x.id} value={x.id}>
+                          {x.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+            </select>
+          )}
           {block.logWeight && (
             <LoadControl
               value={log?.weights?.[block.kind]}

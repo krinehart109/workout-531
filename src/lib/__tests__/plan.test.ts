@@ -99,9 +99,44 @@ describe('buildWorkoutPlan', () => {
   });
 
   it('assistance rotates by cycle (press day A1)', () => {
-    expect(block(buildWorkoutPlan({ cycle: 1, week: 1, day: 1 }, settings), 'a1').title).toContain('1-Arm DB Row');
-    expect(block(buildWorkoutPlan({ cycle: 2, week: 1, day: 1 }, settings), 'a1').title).toContain('Underhand BB Row');
-    expect(block(buildWorkoutPlan({ cycle: 3, week: 1, day: 1 }, settings), 'a1').title).toContain('2-DB Bent-Over Row');
+    expect(block(buildWorkoutPlan({ cycle: 1, week: 1, day: 1 }, settings), 'a1').swap?.name).toBe('1-Arm DB Row');
+    expect(block(buildWorkoutPlan({ cycle: 2, week: 1, day: 1 }, settings), 'a1').swap?.name).toBe('Underhand BB Row');
+    expect(block(buildWorkoutPlan({ cycle: 3, week: 1, day: 1 }, settings), 'a1').swap?.name).toBe('2-DB Bent-Over Row');
+  });
+
+  it('accessory overrides swap the movement, reps, and load flag', () => {
+    // Bench day C1: A1 is programmed as Bent-Over BB Row (weighted)
+    const plain = buildWorkoutPlan({ cycle: 1, week: 1, day: 3 }, settings);
+    expect(block(plain, 'a1').swap?.name).toBe('Bent-Over BB Row');
+    expect(block(plain, 'a1').logWeight).toBe(true);
+    // Swapped to chin-ups: bodyweight, AMRAP reps, default name preserved
+    const swapped = buildWorkoutPlan({ cycle: 1, week: 1, day: 3 }, settings, { a1: 'chin-ups' });
+    const a1 = block(swapped, 'a1');
+    expect(a1.swap?.name).toBe('Chin-Ups');
+    expect(a1.swap?.defaultName).toBe('Bent-Over BB Row');
+    expect(a1.swap?.selectedId).toBe('chin-ups');
+    expect(a1.logWeight).toBe(false);
+    expect(a1.sets[0].reps).toBe('AMRAP −1');
+    expect(a1.sets).toHaveLength(2); // set ramp still follows the A1 week scheme
+  });
+
+  it('unknown override ids fall back to the programmed movement', () => {
+    const plan = buildWorkoutPlan({ cycle: 1, week: 1, day: 3 }, settings, { a1: 'not-a-real-id' });
+    expect(block(plan, 'a1').swap?.name).toBe('Bent-Over BB Row');
+  });
+
+  it('BBB overrides compute weight from the selected movement’s TM source', () => {
+    // Bench day C1W1 default: 50% of bench TM 125 → 65
+    const plain = buildWorkoutPlan({ cycle: 1, week: 1, day: 3 }, settings);
+    expect(block(plain, 'bbb').sets[0].weight).toBe(65);
+    // Swapped to RDL: 50% of deadlift TM 230 → 115
+    const rdl = buildWorkoutPlan({ cycle: 1, week: 1, day: 3 }, settings, { bbb: 'rdl' });
+    expect(block(rdl, 'bbb').swap?.name).toBe('Barbell RDL');
+    expect(block(rdl, 'bbb').sets[0].weight).toBe(115);
+    // TM holds on the source lift flow through
+    const held = { ...settings, holds: { deadlift: [1] } };
+    const rdlC2 = buildWorkoutPlan({ cycle: 2, week: 1, day: 3 }, held, { bbb: 'rdl' });
+    expect(block(rdlC2, 'bbb').sets[0].weight).toBe(Math.round((230 * 0.55) / 5) * 5);
   });
 
   it('required sets are exactly the three main working sets', () => {

@@ -14,11 +14,15 @@ import {
   type LiftKey,
 } from './program';
 import { assistanceFor, assistSetCount, HIP_PREP, isWeightedMovement, type AssistSlot } from './assistance';
+import { bbbOptionById, exerciseById } from './exercises';
 import { liftForDay, type ProgramPosition } from './schedule';
 import type { AppSettings } from './seed';
 
 export type BlockKind = 'hipprep' | 'warmup' | 'main' | 'bbb' | 'a1' | 'a2' | 'optional';
 export type RestKind = keyof AppSettings['rest'];
+
+/** Per-workout exercise swaps, keyed by block kind (bbb/a1/a2/optional) → exercise id */
+export type ExerciseOverrides = Record<string, string>;
 
 export interface PlannedSet {
   /** Stable id used as the key in the workout log, e.g. "m2", "b4" */
@@ -44,6 +48,15 @@ export interface WorkoutBlock {
   sets: PlannedSet[];
   /** Accessory movement that takes external load — show a weight-logging control */
   logWeight?: boolean;
+  /** Present when the block's exercise can be swapped from the library */
+  swap?: {
+    /** Name of the movement currently in effect */
+    name: string;
+    /** Name of the programmed default */
+    defaultName: string;
+    /** Selected override exercise id, if any */
+    selectedId?: string;
+  };
 }
 
 export interface WorkoutPlan {
@@ -65,7 +78,11 @@ export function bbbLiftName(day: number, cycle: number, lifts: Record<LiftKey, L
   return lifts[key].name;
 }
 
-export function buildWorkoutPlan(pos: ProgramPosition, settings: AppSettings): WorkoutPlan {
+export function buildWorkoutPlan(
+  pos: ProgramPosition,
+  settings: AppSettings,
+  overrides: ExerciseOverrides = {},
+): WorkoutPlan {
   const { cycle, week, day } = pos;
   const liftKey = liftForDay(day);
   const lift = settings.lifts[liftKey];
@@ -120,19 +137,29 @@ export function buildWorkoutPlan(pos: ProgramPosition, settings: AppSettings): W
     }),
   });
 
-  const bbbWeight = workingWeight(tm, bbbPercent(cycle, week), bar);
+  // BBB: same-lift by default (deadlift day alternates RDL/DL/RDL); a swap
+  // computes the weight from the selected movement's own TM source.
+  const bbbDefaultName = bbbLiftName(day, cycle, settings.lifts);
+  const bbbOpt = overrides['bbb'] ? bbbOptionById(overrides['bbb']) : undefined;
+  const bbbName = bbbOpt?.name ?? bbbDefaultName;
+  const bbbTm = bbbOpt
+    ? trainingMaxForCycle(settings.lifts[bbbOpt.tmSource], cycle, settings.holds[bbbOpt.tmSource] ?? [])
+    : tm;
+  const bbbPct = bbbPercent(cycle, week);
+  const bbbWeight = workingWeight(bbbTm, bbbPct, bar);
   blocks.push({
     kind: 'bbb',
-    title: `BBB · ${bbbLiftName(day, cycle, settings.lifts)}`,
-    subtitle: `${Math.round(bbbPercent(cycle, week) * 100)}% TM`,
+    title: 'BBB',
+    subtitle: `${Math.round(bbbPct * 100)}% · TM ${bbbTm}`,
     rest: 'bbb',
     sets: Array.from({ length: bbbSetCount(week) }, (_, i) => ({
       id: `b${i + 1}`,
       weight: bbbWeight,
-      pct: bbbPercent(cycle, week),
+      pct: bbbPct,
       reps: String(BBB_REPS),
       isBar: bbbWeight === bar,
     })),
+    swap: { name: bbbName, defaultName: bbbDefaultName, selectedId: bbbOpt?.id },
   });
 
   const slots: { slot: AssistSlot; kind: BlockKind; label: string }[] = [
@@ -143,14 +170,17 @@ export function buildWorkoutPlan(pos: ProgramPosition, settings: AppSettings): W
   for (const { slot, kind, label } of slots) {
     const count = assistSetCount(slot, week);
     if (count === 0) continue;
-    const move = assistanceFor(day, cycle, slot);
+    const programmed = assistanceFor(day, cycle, slot);
+    const swapped = overrides[kind] ? exerciseById(overrides[kind]) : undefined;
+    const move = swapped ? { name: swapped.name, reps: swapped.reps } : programmed;
     blocks.push({
       kind,
-      title: `${label} · ${move.name}`,
+      title: label,
       subtitle: slot === 'optional' ? 'Finisher — skip if short on time' : 'Superset · 60–90 s rest',
       rest: 'assistance',
       sets: Array.from({ length: count }, (_, i) => ({ id: `${slot}s${i + 1}`, reps: move.reps })),
-      logWeight: isWeightedMovement(move.name),
+      logWeight: swapped ? swapped.weighted : isWeightedMovement(programmed.name),
+      swap: { name: move.name, defaultName: programmed.name, selectedId: swapped?.id },
     });
   }
 

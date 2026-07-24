@@ -13,6 +13,7 @@ export async function exportJSON(): Promise<void> {
     settings: await db.settings.toArray(),
     workoutLogs: await db.workoutLogs.toArray(),
     bodyweight: await db.bodyweight.toArray(),
+    cardioLogs: await db.cardioLogs.toArray(),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -37,14 +38,17 @@ export async function importJSON(text: string): Promise<void> {
     settings?: unknown[];
     workoutLogs?: unknown[];
     bodyweight?: unknown[];
+    cardioLogs?: unknown[];
   };
-  await db.transaction('rw', db.settings, db.workoutLogs, db.bodyweight, async () => {
-    await Promise.all([db.settings.clear(), db.workoutLogs.clear(), db.bodyweight.clear()]);
+  await db.transaction('rw', db.settings, db.workoutLogs, db.bodyweight, db.cardioLogs, async () => {
+    await Promise.all([db.settings.clear(), db.workoutLogs.clear(), db.bodyweight.clear(), db.cardioLogs.clear()]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await db.settings.bulkAdd((d.settings ?? []) as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await db.workoutLogs.bulkAdd((d.workoutLogs ?? []) as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await db.bodyweight.bulkAdd((d.bodyweight ?? []) as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await db.cardioLogs.bulkAdd((d.cardioLogs ?? []) as any);
   });
 }
