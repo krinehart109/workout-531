@@ -15,6 +15,7 @@ import {
 } from './program';
 import { assistanceFor, assistSetCount, HIP_PREP, isWeightedMovement, type AssistSlot } from './assistance';
 import { bbbOptionById, exerciseById } from './exercises';
+import { loadableWeight } from './loadout';
 import { liftForDay, type ProgramPosition } from './schedule';
 import type { AppSettings } from './seed';
 
@@ -88,6 +89,10 @@ export function buildWorkoutPlan(
   const lift = settings.lifts[liftKey];
   const tm = trainingMaxForCycle(lift, cycle, settings.holds[liftKey] ?? []);
   const bar = settings.barWeight;
+  // %-of-TM rounded to 5, then snapped DOWN to what the plate inventory can
+  // actually build — the app never prescribes a weight the shelf can't load.
+  const planWeight = (pct: number, fromTm = tm): number =>
+    loadableWeight(workingWeight(fromTm, pct, bar), bar, settings.plates);
   const blocks: WorkoutBlock[] = [];
 
   if (liftKey === 'squat' || liftKey === 'deadlift') {
@@ -105,7 +110,7 @@ export function buildWorkoutPlan(
     title: 'Warm-Up',
     rest: null,
     sets: warmupSets().map((s, i) => {
-      const weight = workingWeight(tm, s.pct, bar);
+      const weight = planWeight(s.pct);
       return { id: `wu${i + 1}`, weight, pct: s.pct, reps: String(s.reps), isBar: weight === bar };
     }),
   });
@@ -120,7 +125,7 @@ export function buildWorkoutPlan(
     rest: 'main',
     sets: main.map((s, i) => {
       const id = `m${i + 1}`;
-      const weight = workingWeight(tm, s.pct, bar);
+      const weight = planWeight(s.pct);
       if (s.amrap) {
         topSetId = id;
         topSetWeight = weight;
@@ -146,7 +151,7 @@ export function buildWorkoutPlan(
     ? trainingMaxForCycle(settings.lifts[bbbOpt.tmSource], cycle, settings.holds[bbbOpt.tmSource] ?? [])
     : tm;
   const bbbPct = bbbPercent(cycle, week);
-  const bbbWeight = workingWeight(bbbTm, bbbPct, bar);
+  const bbbWeight = planWeight(bbbPct, bbbTm);
   blocks.push({
     kind: 'bbb',
     title: 'BBB',

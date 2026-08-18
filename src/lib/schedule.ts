@@ -116,26 +116,16 @@ export function nextFixedWorkout(
   return null;
 }
 
-// ---- Flexible mode: the date determines cycle + week; the lifter picks
-// which of the week's 4 lifts (and 3 cardio sessions) to do each day ----
-
-export interface WeekPosition {
-  cycle: number;
-  week: number;
-}
+// ---- Flexible mode: the calendar is ignored entirely — the app opens on
+// the first incomplete workout in program order, whenever that happens ----
 
 /**
- * Cycle + week containing a date, ignoring the weekday entirely
- * (weekends included). Null outside the program.
+ * First workout in program order (c1w1d1 → c3w4d4) whose id is not in
+ * `completedIds`. Null when all 48 are done.
  */
-export function weekForDate(iso: string, cycleStarts: string[]): WeekPosition | null {
-  for (let c = 0; c < cycleStarts.length; c++) {
-    const start = cycleStarts[c];
-    if (start === undefined) continue;
-    const d = daysBetween(start, iso);
-    if (d >= 0 && d < WEEKS_PER_CYCLE * 7) {
-      return { cycle: c + 1, week: Math.floor(d / 7) + 1 };
-    }
+export function nextIncompletePosition(completedIds: ReadonlySet<string>): ProgramPosition | null {
+  for (const pos of allPositions()) {
+    if (!completedIds.has(positionId(pos))) return pos;
   }
   return null;
 }

@@ -144,6 +144,23 @@ describe('buildWorkoutPlan', () => {
     expect(requiredSetIds(plan)).toEqual(['m1', 'm2', 'm3']);
   });
 
+  it('weights snap down to what the plate inventory can load', () => {
+    // Without 2.5s, deadlift W3 top set 220 (87.5/side) isn't loadable → 215
+    const sparse = {
+      ...settings,
+      plates: [
+        { size: 45, pairs: 2 },
+        { size: 25, pairs: 1 },
+        { size: 10, pairs: 2 },
+        { size: 5, pairs: 1 },
+      ],
+    };
+    const plan = buildWorkoutPlan({ cycle: 1, week: 3, day: 2 }, sparse);
+    expect(plan.topSetWeight).toBe(215);
+    // With the full seed inventory every programmed weight is exactly loadable
+    expect(buildWorkoutPlan({ cycle: 1, week: 3, day: 2 }, settings).topSetWeight).toBe(220);
+  });
+
   it('TM holds flow through to weights', () => {
     const held = { ...settings, holds: { press: [1] } };
     expect(buildWorkoutPlan({ cycle: 2, week: 1, day: 1 }, held).tm).toBe(75);

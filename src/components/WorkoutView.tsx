@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, setBlockOverride, setBlockWeight, updateSetLog } from '../db';
 import { buildWorkoutPlan, requiredSetIds, type PlannedSet, type WorkoutBlock } from '../lib/plan';
 import { BBB_OPTIONS, EXERCISE_GROUPS, EXERCISE_LIBRARY } from '../lib/exercises';
+import { chainLoadouts } from '../lib/loadout';
 import { epley1RM, WEEK_NAMES } from '../lib/program';
 import { formatDate, positionId, type ProgramPosition } from '../lib/schedule';
 import type { AppSettings } from '../lib/seed';
@@ -68,8 +69,18 @@ export default function WorkoutView({ pos, date, settings, badge, onBack }: Prop
   const logId = positionId(pos);
   const log = useLiveQuery(() => db.workoutLogs.get(logId), [logId]);
   const plan = useMemo(() => buildWorkoutPlan(pos, settings, log?.overrides ?? {}), [pos, settings, log]);
+  // Plate plan for every barbell set in session order — lets the sheet show
+  // what to keep/strip/add relative to what's already on the bar.
+  const loadoutBySetId = useMemo(() => {
+    const seq = plan.blocks
+      .filter((b) => b.kind === 'warmup' || b.kind === 'main' || b.kind === 'bbb')
+      .flatMap((b) => b.sets)
+      .filter((s): s is typeof s & { weight: number } => s.weight !== undefined)
+      .map((s) => ({ id: s.id, weight: s.weight }));
+    return new Map(chainLoadouts(seq, settings.barWeight, settings.plates).map((st) => [st.setId, st]));
+  }, [plan, settings]);
   const [timer, setTimer] = useState<TimerState | null>(null);
-  const [plateWeight, setPlateWeight] = useState<number | null>(null);
+  const [plateSetId, setPlateSetId] = useState<string | null>(null);
 
   const sets = log?.sets ?? {};
   const required = requiredSetIds(plan);
@@ -207,7 +218,7 @@ export default function WorkoutView({ pos, date, settings, badge, onBack }: Prop
                         className="set-weight num"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setPlateWeight(set.weight ?? null);
+                          setPlateSetId(set.id);
                         }}
                         aria-label={`Plate calculator for ${set.weight} lb`}
                       >
@@ -261,8 +272,12 @@ export default function WorkoutView({ pos, date, settings, badge, onBack }: Prop
         <div className="note center muted">Deload — easy work, no AMRAP. Leave feeling fresh.</div>
       )}
 
-      {plateWeight !== null && (
-        <PlateSheet weight={plateWeight} settings={settings} onClose={() => setPlateWeight(null)} />
+      {plateSetId !== null && loadoutBySetId.has(plateSetId) && (
+        <PlateSheet
+          step={loadoutBySetId.get(plateSetId)!}
+          barWeight={settings.barWeight}
+          onClose={() => setPlateSetId(null)}
+        />
       )}
       {timer && (
         <RestTimer

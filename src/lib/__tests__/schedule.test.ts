@@ -6,10 +6,10 @@ import {
   daysBetween,
   liftForDay,
   nextFixedWorkout,
+  nextIncompletePosition,
   positionForDate,
   positionId,
   weekdayOf,
-  weekForDate,
 } from '../schedule';
 
 const STARTS = ['2026-07-20', '2026-08-17', '2026-09-14'];
@@ -85,20 +85,26 @@ describe('program enumeration', () => {
   });
 });
 
-describe('flexible mode (weekForDate)', () => {
-  it('maps any weekday — including rest days and weekends — to its week', () => {
-    expect(weekForDate('2026-07-20', STARTS)).toEqual({ cycle: 1, week: 1 }); // Mon
-    expect(weekForDate('2026-07-22', STARTS)).toEqual({ cycle: 1, week: 1 }); // Wed
-    expect(weekForDate('2026-07-26', STARTS)).toEqual({ cycle: 1, week: 1 }); // Sun
-    expect(weekForDate('2026-07-27', STARTS)).toEqual({ cycle: 1, week: 2 });
+describe('flexible mode (nextIncompletePosition)', () => {
+  it('starts at the very first workout', () => {
+    expect(nextIncompletePosition(new Set())).toEqual({ cycle: 1, week: 1, day: 1 });
   });
 
-  it('advances cycles and caps at the end', () => {
-    expect(weekForDate('2026-08-16', STARTS)).toEqual({ cycle: 1, week: 4 }); // last Sunday of C1
-    expect(weekForDate('2026-08-17', STARTS)).toEqual({ cycle: 2, week: 1 });
-    expect(weekForDate('2026-10-11', STARTS)).toEqual({ cycle: 3, week: 4 }); // day 27 of C3
-    expect(weekForDate('2026-10-12', STARTS)).toBeNull(); // program over
-    expect(weekForDate('2026-07-19', STARTS)).toBeNull(); // before start
+  it('ignores dates entirely — just the first gap in program order', () => {
+    expect(nextIncompletePosition(new Set(['c1w1d1']))).toEqual({ cycle: 1, week: 1, day: 2 });
+    // Lifts done out of order within the week: the skipped one is next
+    expect(nextIncompletePosition(new Set(['c1w1d1', 'c1w1d3']))).toEqual({ cycle: 1, week: 1, day: 2 });
+  });
+
+  it('crosses weeks and cycles', () => {
+    const week1 = new Set(['c1w1d1', 'c1w1d2', 'c1w1d3', 'c1w1d4']);
+    expect(nextIncompletePosition(week1)).toEqual({ cycle: 1, week: 2, day: 1 });
+    const cycle1 = new Set(allPositions().filter((p) => p.cycle === 1).map(positionId));
+    expect(nextIncompletePosition(cycle1)).toEqual({ cycle: 2, week: 1, day: 1 });
+  });
+
+  it('returns null when all 48 are done', () => {
+    expect(nextIncompletePosition(new Set(allPositions().map(positionId)))).toBeNull();
   });
 
   it('cardio ids are per cycle/week/slot', () => {

@@ -765,6 +765,81 @@ input[type='checkbox'] {
   margin: 20px 0;
 }
 
+.plate-new {
+  border-style: dashed;
+}
+
+.delta-box {
+  margin-top: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.delta-from {
+  text-align: center;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.delta-same {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--green);
+  padding: 4px 0;
+}
+
+.delta-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  flex-wrap: wrap;
+}
+
+.delta-tag {
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  width: 44px;
+}
+
+.delta-tag-remove {
+  color: var(--red);
+}
+
+.delta-tag-add {
+  color: var(--green);
+}
+
+.dchip {
+  min-width: 40px;
+  padding: 6px 8px;
+  text-align: center;
+  border-radius: 8px;
+  font-size: 16px;
+  border: 1.5px solid var(--line);
+}
+
+.dchip-remove {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.dchip-add {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.delta-note {
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+
 .warn-note {
   text-align: center;
   color: var(--red);

@@ -99,7 +99,7 @@ function ScheduleEditor({ settings }: { settings: AppSettings }) {
           value={settings.scheduleMode ?? 'flex'}
           onChange={(e) => void patchSettings({ scheduleMode: e.target.value as 'flex' | 'fixed' })}
         >
-          <option value="flex">Flexible — 4 lifts + cardio, any days</option>
+          <option value="flex">Flexible — always open the next workout, any days</option>
           <option value="fixed">Fixed — Mon Press · Tue DL · Thu Bench · Fri Squat</option>
         </select>
       </label>
