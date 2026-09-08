@@ -10,6 +10,7 @@ import {
   type LiftKey,
 } from '../lib/program';
 import { buildWorkoutPlan } from '../lib/plan';
+import { perSideCount } from '../lib/plates';
 import { liftForDay, positionId, weekdayOf, type ProgramPosition } from '../lib/schedule';
 import type { AppSettings } from '../lib/seed';
 
@@ -143,15 +144,15 @@ function ScheduleEditor({ settings }: { settings: AppSettings }) {
 
 function PlateEditor({ settings }: { settings: AppSettings }) {
   const [newSize, setNewSize] = useState('');
-  const setPairs = (i: number, pairs: number) => {
-    const next = settings.plates.map((p, idx) => (idx === i ? { ...p, pairs: Math.max(0, pairs) } : p));
+  const setCount = (i: number, count: number) => {
+    const next = settings.plates.map((p, idx) => (idx === i ? { ...p, count: Math.max(0, count) } : p));
     void patchSettings({ plates: next });
   };
   const remove = (i: number) => void patchSettings({ plates: settings.plates.filter((_, idx) => idx !== i) });
   const add = () => {
     const size = parseFloat(newSize);
     if (!Number.isFinite(size) || size <= 0) return;
-    const next = [...settings.plates, { size, pairs: 1 }].sort((a, b) => b.size - a.size);
+    const next = [...settings.plates, { size, count: 2 }].sort((a, b) => b.size - a.size);
     void patchSettings({ plates: next });
     setNewSize('');
   };
@@ -159,18 +160,23 @@ function PlateEditor({ settings }: { settings: AppSettings }) {
     <section className="card">
       <div className="block-head">
         <h2>Plates</h2>
-        <span className="muted">counted in pairs</span>
+        <span className="muted">total plates you own</span>
       </div>
       <NumberField label="Bar weight" value={settings.barWeight} step={5} onCommit={(v) => void patchSettings({ barWeight: v })} />
       {settings.plates.map((p, i) => (
         <div key={`${p.size}-${i}`} className="plate-row">
-          <span className="num plate-size">{p.size} lb</span>
+          <span className="plate-size">
+            <span className="num">{p.size} lb</span>
+            <span className="plate-sub muted">
+              {perSideCount(p.count)}/side{p.count % 2 === 1 ? ' · 1 odd' : ''}
+            </span>
+          </span>
           <div className="pair-stepper">
-            <button className="step-btn num" onClick={() => setPairs(i, p.pairs - 1)}>
+            <button className="step-btn num" onClick={() => setCount(i, p.count - 1)}>
               −
             </button>
-            <span className="num pair-count">{p.pairs}</span>
-            <button className="step-btn num" onClick={() => setPairs(i, p.pairs + 1)}>
+            <span className="num pair-count">{p.count}</span>
+            <button className="step-btn num" onClick={() => setCount(i, p.count + 1)}>
               +
             </button>
           </div>

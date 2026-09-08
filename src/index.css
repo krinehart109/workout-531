@@ -1137,8 +1137,18 @@ input[type='checkbox'] {
 }
 
 .plate-size {
+  display: flex;
+  flex-direction: column;
+  width: 96px;
+  line-height: 1.15;
+}
+
+.plate-size .num {
   font-size: 22px;
-  width: 76px;
+}
+
+.plate-sub {
+  font-size: 11.5px;
 }
 
 .pair-stepper {

@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { defaultSettings, type AppSettings } from './lib/seed';
+import { normalizePlates } from './lib/plates';
 import type { ProgramPosition } from './lib/schedule';
 
 export interface SetLog {
@@ -56,6 +57,18 @@ db.version(1).stores({
 db.version(2).stores({
   cardioLogs: 'id',
 });
+
+// v3: plate inventory switched from pairs to individual plate counts
+// ({ size, pairs } → { size, count: pairs × 2 }).
+db.version(3)
+  .stores({})
+  .upgrade(async (tx) => {
+    const settings = await tx.table('settings').get(1);
+    if (settings) {
+      settings.plates = normalizePlates(settings.plates);
+      await tx.table('settings').put(settings);
+    }
+  });
 
 db.on('populate', () => {
   void db.settings.add(defaultSettings());

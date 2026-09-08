@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { chainLoadouts, loadableWeight } from '../loadout';
-import type { PlatePair } from '../plates';
+import type { Plate } from '../plates';
 
-// Seed inventory: pairs of 45×2, 25, 10×2, 5, 2.5
-const INV: PlatePair[] = [
-  { size: 45, pairs: 2 },
-  { size: 25, pairs: 1 },
-  { size: 10, pairs: 2 },
-  { size: 5, pairs: 1 },
-  { size: 2.5, pairs: 1 },
+// Seed inventory (individual plates owned): 4× 45, 2× 25, 4× 10, 2× 5, 2× 2.5
+const INV: Plate[] = [
+  { size: 45, count: 4 },
+  { size: 25, count: 2 },
+  { size: 10, count: 4 },
+  { size: 5, count: 2 },
+  { size: 2.5, count: 2 },
 ];
 
 const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
@@ -22,21 +22,48 @@ describe('loadableWeight', () => {
 
   it('snaps down to the closest loadable weight otherwise', () => {
     // No 2.5s: 220 needs 87.5/side → best is 45+25+10+5 = 85 → 215
-    const noQuarters: PlatePair[] = [
-      { size: 45, pairs: 1 },
-      { size: 25, pairs: 1 },
-      { size: 10, pairs: 2 },
-      { size: 5, pairs: 1 },
+    const noQuarters: Plate[] = [
+      { size: 45, count: 2 },
+      { size: 25, count: 2 },
+      { size: 10, count: 4 },
+      { size: 5, count: 2 },
     ];
     expect(loadableWeight(220, 45, noQuarters)).toBe(215);
     // Only 45s: anything under 135 collapses to the bar
-    expect(loadableWeight(90, 45, [{ size: 45, pairs: 2 }])).toBe(45);
-    expect(loadableWeight(150, 45, [{ size: 45, pairs: 2 }])).toBe(135);
+    expect(loadableWeight(90, 45, [{ size: 45, count: 4 }])).toBe(45);
+    expect(loadableWeight(150, 45, [{ size: 45, count: 4 }])).toBe(135);
+  });
+
+  it('uses floor(count/2) per side — an odd plate out never loads', () => {
+    // Three 45s owned = only ONE per side; 235 needs 95/side → 45+25+10+10+5 = 95 exact
+    const odd: Plate[] = [
+      { size: 45, count: 3 },
+      { size: 25, count: 2 },
+      { size: 10, count: 4 },
+      { size: 5, count: 2 },
+    ];
+    expect(loadableWeight(235, 45, odd)).toBe(235);
+    // 275 would need two 45s/side (115) — best without them: 45+25+10+10+5 = 95 → 235
+    expect(loadableWeight(275, 45, odd)).toBe(235);
+    // A single plate of a size contributes nothing
+    expect(loadableWeight(55, 45, [{ size: 5, count: 1 }])).toBe(45);
   });
 
   it('beats greedy loading when it matters', () => {
     // 105 → 30/side. Greedy grabs the 25 and dead-ends at 25; 10+10+10 is exact.
-    expect(loadableWeight(105, 45, [{ size: 25, pairs: 1 }, { size: 10, pairs: 3 }])).toBe(105);
+    expect(
+      loadableWeight(105, 45, [
+        { size: 25, count: 2 },
+        { size: 10, count: 6 },
+      ]),
+    ).toBe(105);
+  });
+
+  it('covers every barbell weight in the 12-week program with the seed shelf', () => {
+    // Heaviest programmed: deadlift C3 TM 250 @ 95% = 240
+    for (let w = 45; w <= 240; w += 5) {
+      expect(loadableWeight(w, 45, INV), `weight ${w}`).toBe(w);
+    }
   });
 });
 

@@ -2,7 +2,7 @@
 // editable later in Settings.
 
 import type { LiftConfig, LiftKey } from './program';
-import type { PlatePair } from './plates';
+import type { Plate } from './plates';
 
 export interface RestSettings {
   main: number;
@@ -16,7 +16,8 @@ export interface AppSettings {
   id: number;
   lifts: Record<LiftKey, LiftConfig>;
   barWeight: number;
-  plates: PlatePair[];
+  /** Individual plates owned (total, not pairs) */
+  plates: Plate[];
   /**
    * 'flex' (default): the date sets the week; pick any of the week's 4 lifts
    * + cardio sessions on any days. 'fixed': Mon=Press Tue=DL Thu=Bench Fri=Squat.
@@ -77,11 +78,11 @@ export function defaultSettings(): AppSettings {
     lifts,
     barWeight: 45,
     plates: [
-      { size: 45, pairs: 2 },
-      { size: 25, pairs: 1 },
-      { size: 10, pairs: 2 },
-      { size: 5, pairs: 1 },
-      { size: 2.5, pairs: 1 },
+      { size: 45, count: 4 },
+      { size: 25, count: 2 },
+      { size: 10, count: 4 },
+      { size: 5, count: 2 },
+      { size: 2.5, count: 2 },
     ],
     scheduleMode: 'flex',
     cardioPerWeek: 3,

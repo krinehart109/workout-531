@@ -25,8 +25,20 @@ interface TimerState {
   startedAt: number;
 }
 
-/** Editable per-movement load for accessory work: ±5 steppers plus direct entry. */
-function LoadControl({ value, onChange }: { value?: number; onChange: (v: number | undefined) => void }) {
+/** Editable per-movement load: ±5 steppers plus direct entry. With a
+ * `fallback` (e.g. the programmed BBB weight), an empty field means "use the
+ * programmed weight" and the steppers start from it. */
+function LoadControl({
+  value,
+  fallback,
+  label = 'Load',
+  onChange,
+}: {
+  value?: number;
+  fallback?: number;
+  label?: string;
+  onChange: (v: number | undefined) => void;
+}) {
   const [text, setText] = useState<string | null>(null);
   const shown = text ?? (value !== undefined ? String(value) : '');
   const commit = (raw: string) => {
@@ -34,13 +46,13 @@ function LoadControl({ value, onChange }: { value?: number; onChange: (v: number
     onChange(Number.isFinite(v) && v > 0 ? v : undefined);
   };
   const bump = (delta: number) => {
-    const next = Math.max(0, (value ?? 0) + delta);
+    const next = Math.max(0, (value ?? fallback ?? 0) + delta);
     onChange(next > 0 ? next : undefined);
     setText(null);
   };
   return (
     <div className="load-row">
-      <span className="load-label muted">Load</span>
+      <span className="load-label muted">{label}</span>
       <button className="wstep num" onClick={() => bump(-5)} aria-label="Decrease load 5 lb">
         −
       </button>
@@ -48,7 +60,7 @@ function LoadControl({ value, onChange }: { value?: number; onChange: (v: number
         className="wval num"
         type="number"
         inputMode="decimal"
-        placeholder="—"
+        placeholder={fallback !== undefined ? String(fallback) : '—'}
         value={shown}
         onChange={(e) => {
           setText(e.target.value);
@@ -68,7 +80,10 @@ function LoadControl({ value, onChange }: { value?: number; onChange: (v: number
 export default function WorkoutView({ pos, date, settings, badge, onBack }: Props) {
   const logId = positionId(pos);
   const log = useLiveQuery(() => db.workoutLogs.get(logId), [logId]);
-  const plan = useMemo(() => buildWorkoutPlan(pos, settings, log?.overrides ?? {}), [pos, settings, log]);
+  const plan = useMemo(
+    () => buildWorkoutPlan(pos, settings, log?.overrides ?? {}, log?.weights ?? {}),
+    [pos, settings, log],
+  );
   // Plate plan for every barbell set in session order — lets the sheet show
   // what to keep/strip/add relative to what's already on the bar.
   const loadoutBySetId = useMemo(() => {
@@ -194,6 +209,14 @@ export default function WorkoutView({ pos, date, settings, badge, onBack }: Prop
             <LoadControl
               value={log?.weights?.[block.kind]}
               onChange={(w) => void setBlockWeight(pos, logId, block.kind, w)}
+            />
+          )}
+          {block.kind === 'bbb' && (
+            <LoadControl
+              label="Bar weight"
+              value={log?.weights?.bbb}
+              fallback={block.defaultWeight}
+              onChange={(w) => void setBlockWeight(pos, logId, 'bbb', w)}
             />
           )}
           {block.sets.map((set, i) => {

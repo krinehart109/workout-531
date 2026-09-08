@@ -149,16 +149,55 @@ describe('buildWorkoutPlan', () => {
     const sparse = {
       ...settings,
       plates: [
-        { size: 45, pairs: 2 },
-        { size: 25, pairs: 1 },
-        { size: 10, pairs: 2 },
-        { size: 5, pairs: 1 },
+        { size: 45, count: 4 },
+        { size: 25, count: 2 },
+        { size: 10, count: 4 },
+        { size: 5, count: 2 },
       ],
     };
     const plan = buildWorkoutPlan({ cycle: 1, week: 3, day: 2 }, sparse);
     expect(plan.topSetWeight).toBe(215);
     // With the full seed inventory every programmed weight is exactly loadable
     expect(buildWorkoutPlan({ cycle: 1, week: 3, day: 2 }, settings).topSetWeight).toBe(220);
+  });
+
+  it('an odd plate count only loads floor(count/2) per side', () => {
+    // Three 45s = one usable per side: DL W3 top set 220 needs 87.5/side,
+    // best without a second 45 is 45+25+10+5+2.5 = 87.5 — still exact.
+    // But 195 (75/side) also fine; drop the 25s and it degrades:
+    const odd = {
+      ...settings,
+      plates: [
+        { size: 45, count: 3 },
+        { size: 10, count: 4 },
+        { size: 5, count: 2 },
+      ],
+    };
+    // W1 top set target 195 → 75/side; only one 45/side: 45+10+10+5 = 70 → 185
+    const plan = buildWorkoutPlan({ cycle: 1, week: 1, day: 2 }, odd);
+    expect(plan.topSetWeight).toBe(185);
+  });
+
+  it('BBB weight can be overridden heavier or lighter per workout', () => {
+    // Bench day C1W1 programmed BBB: 50% of TM 125 → 65
+    const plain = buildWorkoutPlan({ cycle: 1, week: 1, day: 3 }, settings);
+    const plainBbb = block(plain, 'bbb');
+    expect(plainBbb.sets[0].weight).toBe(65);
+    expect(plainBbb.defaultWeight).toBe(65);
+    // Heavier: 95 loads exactly and replaces the % weight on every set
+    const heavy = buildWorkoutPlan({ cycle: 1, week: 1, day: 3 }, settings, {}, { bbb: 95 });
+    const heavyBbb = block(heavy, 'bbb');
+    expect(heavyBbb.sets.map((s) => s.weight)).toEqual([95, 95, 95]);
+    expect(heavyBbb.sets[0].pct).toBeUndefined();
+    expect(heavyBbb.subtitle).toContain('custom');
+    expect(heavyBbb.defaultWeight).toBe(65);
+    // Custom weights still snap to the shelf (97 → 95)
+    const odd = buildWorkoutPlan({ cycle: 1, week: 1, day: 3 }, settings, {}, { bbb: 97 });
+    expect(block(odd, 'bbb').sets[0].weight).toBe(95);
+    // Accessory logged loads don't touch the barbell blocks
+    const acc = buildWorkoutPlan({ cycle: 1, week: 1, day: 3 }, settings, {}, { a1: 40 });
+    expect(block(acc, 'bbb').sets[0].weight).toBe(65);
+    expect(acc.topSetWeight).toBe(105);
   });
 
   it('TM holds flow through to weights', () => {

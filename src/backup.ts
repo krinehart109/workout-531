@@ -1,6 +1,7 @@
 // JSON export / import of the whole database.
 
 import { db } from './db';
+import { normalizePlates } from './lib/plates';
 import { todayISO } from './lib/schedule';
 
 const APP_TAG = 'workout531';
@@ -40,10 +41,17 @@ export async function importJSON(text: string): Promise<void> {
     bodyweight?: unknown[];
     cardioLogs?: unknown[];
   };
+  // Backups from older versions store plates as pairs — normalize on the way in.
+  const settingsRows = (d.settings ?? []).map((s) => {
+    if (typeof s === 'object' && s !== null && 'plates' in s) {
+      return { ...s, plates: normalizePlates((s as { plates?: unknown }).plates) };
+    }
+    return s;
+  });
   await db.transaction('rw', db.settings, db.workoutLogs, db.bodyweight, db.cardioLogs, async () => {
     await Promise.all([db.settings.clear(), db.workoutLogs.clear(), db.bodyweight.clear(), db.cardioLogs.clear()]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await db.settings.bulkAdd((d.settings ?? []) as any);
+    await db.settings.bulkAdd(settingsRows as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await db.workoutLogs.bulkAdd((d.workoutLogs ?? []) as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

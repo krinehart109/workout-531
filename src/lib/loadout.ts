@@ -3,7 +3,7 @@
 // load as possible: keep an inner prefix, strip the rest, add the difference.
 // All weights are constrained to what the plate inventory can actually build.
 
-import type { PlatePair } from './plates';
+import { perSideCount, type Plate } from './plates';
 
 export interface LoadoutStep {
   setId: string;
@@ -26,11 +26,19 @@ export interface LoadoutStep {
 
 const EPS = 1e-9;
 
-function prepInventory(inventory: PlatePair[]): { sizes: number[]; counts: Map<number, number> } {
-  const usable = inventory.filter((p) => p.pairs > 0 && p.size > 0);
-  const sizes = [...new Set(usable.map((p) => p.size))].sort((a, b) => b - a);
+function prepInventory(inventory: Plate[]): { sizes: number[]; counts: Map<number, number> } {
+  // Total plates owned per size → usable per SIDE (each side needs its own
+  // plate, so an odd plate out contributes nothing).
+  const totals = new Map<number, number>();
+  for (const p of inventory) {
+    if (p.size > 0 && p.count > 0) totals.set(p.size, (totals.get(p.size) ?? 0) + p.count);
+  }
   const counts = new Map<number, number>();
-  for (const p of usable) counts.set(p.size, (counts.get(p.size) ?? 0) + p.pairs);
+  for (const [size, total] of totals) {
+    const perSide = perSideCount(total);
+    if (perSide > 0) counts.set(size, perSide);
+  }
+  const sizes = [...counts.keys()].sort((a, b) => b - a);
   return { sizes, counts };
 }
 
@@ -70,7 +78,7 @@ function maxAchievable(target: number, sizes: number[], counts: Map<number, numb
 }
 
 /** Largest loadable total bar weight ≤ target given the inventory (min: the bar). */
-export function loadableWeight(target: number, barWeight: number, inventory: PlatePair[]): number {
+export function loadableWeight(target: number, barWeight: number, inventory: Plate[]): number {
   if (target <= barWeight) return barWeight;
   const { sizes, counts } = prepInventory(inventory);
   return barWeight + 2 * maxAchievable((target - barWeight) / 2, sizes, counts);
@@ -84,7 +92,7 @@ export function loadableWeight(target: number, barWeight: number, inventory: Pla
 export function chainLoadouts(
   sets: { id: string; weight: number }[],
   barWeight: number,
-  inventory: PlatePair[],
+  inventory: Plate[],
 ): LoadoutStep[] {
   const { sizes, counts: baseCounts } = prepInventory(inventory);
   const steps: LoadoutStep[] = [];

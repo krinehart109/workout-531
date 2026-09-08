@@ -49,6 +49,8 @@ export interface WorkoutBlock {
   sets: PlannedSet[];
   /** Accessory movement that takes external load — show a weight-logging control */
   logWeight?: boolean;
+  /** Programmed weight the block falls back to when its custom load is cleared (BBB) */
+  defaultWeight?: number;
   /** Present when the block's exercise can be swapped from the library */
   swap?: {
     /** Name of the movement currently in effect */
@@ -83,6 +85,9 @@ export function buildWorkoutPlan(
   pos: ProgramPosition,
   settings: AppSettings,
   overrides: ExerciseOverrides = {},
+  /** Per-workout custom loads keyed by block kind (from the log); BBB uses
+   * 'bbb' to replace its computed %-of-TM weight. */
+  blockWeights: Record<string, number> = {},
 ): WorkoutPlan {
   const { cycle, week, day } = pos;
   const liftKey = liftForDay(day);
@@ -151,20 +156,29 @@ export function buildWorkoutPlan(
     ? trainingMaxForCycle(settings.lifts[bbbOpt.tmSource], cycle, settings.holds[bbbOpt.tmSource] ?? [])
     : tm;
   const bbbPct = bbbPercent(cycle, week);
-  const bbbWeight = planWeight(bbbPct, bbbTm);
+  const bbbProgrammed = planWeight(bbbPct, bbbTm);
+  // Go heavier or lighter at will: a custom load replaces the %-of-TM weight
+  // (still snapped to what the shelf can build).
+  const bbbCustom = blockWeights['bbb'];
+  const bbbWeight =
+    bbbCustom !== undefined ? loadableWeight(bbbCustom, bar, settings.plates) : bbbProgrammed;
   blocks.push({
     kind: 'bbb',
     title: 'BBB',
-    subtitle: `${Math.round(bbbPct * 100)}% · TM ${bbbTm}`,
+    subtitle:
+      bbbCustom !== undefined
+        ? `custom · prog. ${bbbProgrammed}`
+        : `${Math.round(bbbPct * 100)}% · TM ${bbbTm}`,
     rest: 'bbb',
     sets: Array.from({ length: bbbSetCount(week) }, (_, i) => ({
       id: `b${i + 1}`,
       weight: bbbWeight,
-      pct: bbbPct,
+      pct: bbbCustom !== undefined ? undefined : bbbPct,
       reps: String(BBB_REPS),
       isBar: bbbWeight === bar,
     })),
     swap: { name: bbbName, defaultName: bbbDefaultName, selectedId: bbbOpt?.id },
+    defaultWeight: bbbProgrammed,
   });
 
   const slots: { slot: AssistSlot; kind: BlockKind; label: string }[] = [
